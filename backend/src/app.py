@@ -7,6 +7,7 @@ from src.database import init_db, close_db
 
 from src.api import setup_api_router
 from src.config import settings
+from src.middlewares.rate_limit import RateLimitMiddleware, SingleRequestMiddleware
 
 
 async def lifespan(app: FastAPI) -> AsyncGenerator:
@@ -30,5 +31,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(RateLimitMiddleware)
+app.add_middleware(SingleRequestMiddleware)
 
 app.include_router(api_router)
