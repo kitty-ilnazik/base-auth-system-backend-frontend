@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 
-type Theme = 'light' | 'dark'
+type Theme = 'light' | 'dark' | 'system'
 
 interface ThemeContextProps {
 	theme: Theme
@@ -8,7 +8,7 @@ interface ThemeContextProps {
 }
 
 const THEME_HOOK_KEY = 'app-theme'
-const DEFAULT_THEME: Theme = 'light'
+const DEFAULT_THEME: Theme = 'system'
 const DARK_CLASS = 'dark'
 
 const ThemeContext = createContext<ThemeContextProps>({
@@ -21,9 +21,21 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
 	const [theme, setThemeState] = useState<Theme>(DEFAULT_THEME)
 
+	const getSystemTheme = (): Exclude<Theme, 'system'> =>
+		window.matchMedia &&
+		window.matchMedia('(prefers-color-scheme: dark)').matches
+			? 'dark'
+			: 'light'
+
 	const determineTheme = (): Theme => {
 		const savedTheme = localStorage.getItem(THEME_HOOK_KEY) as Theme | null
-		if (savedTheme === 'light' || savedTheme === 'dark') return savedTheme
+		if (
+			savedTheme === 'light' ||
+			savedTheme === 'dark' ||
+			savedTheme === 'system'
+		) {
+			return savedTheme
+		}
 
 		if (
 			window.matchMedia &&
@@ -36,8 +48,10 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
 	}
 
 	const applyTheme = (theme: Theme) => {
+		const effectiveTheme = theme === 'system' ? getSystemTheme() : theme
 		const html = document.documentElement
-		if (theme === 'dark') {
+
+		if (effectiveTheme === 'dark') {
 			html.classList.add(DARK_CLASS)
 		} else {
 			html.classList.remove(DARK_CLASS)
@@ -56,12 +70,11 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
 		applyTheme(initialTheme)
 
 		const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-		const handler = (e: MediaQueryListEvent) => {
-			const savedTheme = localStorage.getItem(THEME_HOOK_KEY)
-			if (!savedTheme) {
-				const newSystemTheme: Theme = e.matches ? 'dark' : 'light'
-				setThemeState(newSystemTheme)
-				applyTheme(newSystemTheme)
+		const handler = () => {
+			const savedTheme = localStorage.getItem(THEME_HOOK_KEY) as Theme | null
+			if (savedTheme === 'system' || !savedTheme) {
+				applyTheme('system')
+				setThemeState('system')
 			}
 		}
 
